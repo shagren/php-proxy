@@ -65,15 +65,21 @@ try {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 160);
+
 
     $response = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        throw new Exception('Curl error: ' . curl_error($ch));
+    }
 
     $info = curl_getinfo($ch);
     curl_close($ch);
     $responseHeaders = substr($response, 0, $info['header_size']);
     $responseBody = substr($response, $info['header_size']);
 
-    $responseHeaders = preg_split ('/$\R?^/m', $responseHeaders);
+    $responseHeaders = preg_split('/$\R?^/m', $responseHeaders);
     array_pop($responseHeaders);
     header_remove();
     foreach ($responseHeaders as $header) {
