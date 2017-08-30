@@ -89,5 +89,6 @@ try {
 } catch (Exception $e) {
     header('HTTP/1.1 500 Internal Server Error');
     header('Status: 500 Internal Server Error');
+    echo '<h2>PHP-Proxy error</h2>';
     echo $e->getMessage();
 }
