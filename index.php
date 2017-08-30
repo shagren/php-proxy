@@ -107,7 +107,7 @@ try {
         $pdo = new PDO($dsn);
 
         //check if table exists
-        if (!$pdo->query('SELECT count(*) FROM sqlite_master WHERE type="table" AND name="items"')->rowCount()) {
+        if (!$pdo->query('SELECT count(*) FROM sqlite_master WHERE type="table" AND name="items"')->fetch()) {
             $pdo->exec('
             CREATE TABLE items(
                 id INTEGER NOT NULL PRIMARY KEY,
