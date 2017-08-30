@@ -1,0 +1,19 @@
+version: "3.0"
+
+services:
+
+  php-fpm.local:
+    build: ./php-fpm
+    volumes:
+      - ../:/app
+      - ./php-fpm/php-app.ini:/usr/local/etc/php/conf.d/php-app.ini:ro
+
+  nginx.local:
+    image: nginx:alpine
+    depends_on:
+      - php-fpm.local
+    volumes:
+      - ./nginx/app.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../:/app:ro
+    ports:
+      - 80:80
