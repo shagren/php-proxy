@@ -38,7 +38,7 @@ try {
         }
     }
     //remove some headers
-    $headers = array_diff_key($headers, ['Host' => 1, 'Origin' => 1]);
+    $headers = array_diff_key($headers, ['Host' => 1, 'Origin' => 1, 'Content-Length' => 1]);
 
     //prepare POST data.
     $post = '';
@@ -48,6 +48,14 @@ try {
     }
     fclose($input);
 
+    //Empty post? Lets compose manually
+    if (!strlen($post) && count($_FILES)) {
+        $headers = array_diff_key($headers, ['Content-Type']);
+        $post = $_POST;
+        foreach ($_FILES as $name => $fileInfo) {
+            $post[$name] = curl_file_create($fileInfo['tmp_name'], $fileInfo['type'], $fileInfo['name']);
+        }
+    }
 
     //prepare curl
     $ch = curl_init($serverConfig['url'] . $requestURI);
