@@ -54,7 +54,7 @@ try {
         $dh = opendir($dir);
         while ($fileName = readdir($dh)) {
             if (preg_match('/^\d+-/', $fileName)) {
-                $result['files'][] = $url . $fileName;
+                $result['files'][] = $url . '/' . $fileName;
             }
         }
 
