@@ -7,6 +7,7 @@
  */
 
 try {
+    set_time_limit(170);
     //get server from uri and reassemble new request uri
     $requestURI = $_SERVER['REQUEST_URI'];
     $parts = explode('/', $requestURI);
