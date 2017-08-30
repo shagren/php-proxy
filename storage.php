@@ -25,7 +25,7 @@ try {
         throw new NotFoundException('Database file is empty');
     }
 
-    $mode = empty($_GET['mode']) ? 'list' : 'get';
+    $mode = empty($_GET['mode']) ? 'list' : $_GET['mode'];
     $result = [];
     if ($mode == 'list') {
 
