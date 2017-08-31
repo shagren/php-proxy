@@ -90,8 +90,76 @@ try {
 
     //lets store if success
     if ($curlInfo['http_code'] == 200) {
-        $save = true;
+        @fastcgi_finish_request();
+        try {
+            $dsn = 'sqlite:' . realpath('./data/') . '/' . $serverName . '.sqlite';
+            $pdo = new PDO($dsn);
+
+            //check if table exists
+            if (!$pdo->query('SELECT count(*) FROM sqlite_master WHERE type="table" AND name="items"', PDO::FETCH_NUM)->fetch()[0]) {
+                $pdo->exec('
+                    CREATE TABLE items(
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        server STRING NOT NULL,
+                        request_date DATETIME NOT NULL,
+                        request_method STRING NOT NULL,
+                        request_url STRING NOT NULL,
+                        response_status INTEGER NOT NULL,
+                        duration FLOAT NOT NULL,
+                        files STRING
+                    )
+                ');
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO 
+                items(server, request_date, request_method, request_url, response_status, duration) 
+                VALUES(?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $serverName,
+                date('Y-m-d H:i:s', $_SERVER["REQUEST_TIME"]),
+                $_SERVER['REQUEST_METHOD'],
+                $requestURI,
+                $curlInfo['http_code'],
+                $curlDuration
+            ]);
+
+            $id = $pdo->lastInsertId();
+            $dir = './data/' . $serverName . '/' . $id;
+            $url = '/data/' . $serverName . '/' . $id;
+            mkdir($dir, 0777, true);
+            $files = [];
+            if ($_FILES) {
+                $counter = 0;
+                foreach ($_FILES as $fileInfo) {
+                    $counter++;
+                    $clean_name = preg_replace('/[^-_a-z0-9\.]/i', '', $fileInfo['name']);
+                    move_uploaded_file($fileInfo['tmp_name'], $dir . '/' . $counter . '-' . $clean_name);
+                    $files[] = [
+                        'originalName' => $fileInfo['name'],
+                        'size' => $fileInfo['size'],
+                        'type' => $fileInfo['type'],
+                        'uri' => $url . '/' . $counter . '-' . $clean_name
+                    ];
+                }
+            }
+            $update = $pdo->prepare("UPDATE items SET files = ? WHERE id = ?");
+            $update->execute([json_encode($files), $id]);
+            file_put_contents($dir . '/request-headers.json', json_encode($requestHeaders));
+            if (is_array($post)) {
+                file_put_contents($dir . '/post.json', json_encode($post));
+            } elseif (strlen($post)) {
+                file_put_contents($dir . '/post.json', json_encode(['_allpost' => $post]));
+            }
+            file_put_contents($dir . '/response-headers.json', json_encode($responseHeaders));
+            file_put_contents($dir . '/response-body.raw', $responseBody);
+
+
+        } catch (Exception $e) {
+            //silent
+        }
     }
+
 } catch (Exception $e) {
     header('HTTP/1.1 500 Internal Server Error');
     header('Status: 500 Internal Server Error');
@@ -99,75 +167,3 @@ try {
     echo $e->getMessage();
 }
 
-@fastcgi_finish_request();
-
-try {
-    if ($save) {
-        $dsn = 'sqlite:' . realpath('./data/') . '/' . $serverName . '.sqlite';
-        $pdo = new PDO($dsn);
-
-        //check if table exists
-        if (!$pdo->query('SELECT count(*) FROM sqlite_master WHERE type="table" AND name="items"', PDO::FETCH_NUM)->fetch()[0]) {
-            $pdo->exec('
-            CREATE TABLE items(
-                id INTEGER NOT NULL PRIMARY KEY,
-                server STRING NOT NULL,
-                request_date DATETIME NOT NULL,
-                request_method STRING NOT NULL,
-                request_url STRING NOT NULL,
-                response_status INTEGER NOT NULL,
-                duration FLOAT NOT NULL,
-                files STRING
-            )
-        ');
-        }
-
-        $stmt = $pdo->prepare("INSERT INTO 
-        items(server, request_date, request_method, request_url, response_status, duration) 
-        VALUES(?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->execute([
-            $serverName,
-            date('Y-m-d H:i:s', $_SERVER["REQUEST_TIME"]),
-            $_SERVER['REQUEST_METHOD'],
-            $requestURI,
-            $curlInfo['http_code'],
-            $curlDuration
-        ]);
-
-        $id = $pdo->lastInsertId();
-        $dir = './data/' . $serverName . '/' . $id;
-        $url = '/data/' . $serverName . '/' . $id;
-        mkdir($dir, 0777, true);
-        $files = [];
-        if ($_FILES) {
-            $counter = 0;
-            foreach ($_FILES as $fileInfo) {
-                $counter++;
-                move_uploaded_file($fileInfo['tmp_name'], $dir . '/' . $counter . '-' . $fileInfo['name']);
-                $files[] = [
-                    'originalName' => $fileInfo['name'],
-                    'size' => $fileInfo['size'],
-                    'type' => $fileInfo['type'],
-                    'uri'  => $url . '/' . $counter . '-' . $fileInfo['name']
-                ];
-            }
-        }
-        $update = $pdo->prepare("UPDATE items SET files = ? WHERE id = ?");
-        $update->execute([json_encode($files), $id]);
-        file_put_contents($dir . '/request-headers.json', json_encode($requestHeaders));
-        if (is_array($post)) {
-            file_put_contents($dir . '/post.json', json_encode($post));
-        } elseif (strlen($post)) {
-            file_put_contents($dir . '/post.json', json_encode(['_allpost' => $post]));
-        }
-        file_put_contents($dir . '/response-headers.json', json_encode($responseHeaders));
-        file_put_contents($dir . '/response-body.raw', $responseBody);
-
-
-
-    }
-} catch (Exception $e) {
-    //silent
-    echo "";
-}
