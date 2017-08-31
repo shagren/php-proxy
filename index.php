@@ -107,7 +107,7 @@ try {
         $pdo = new PDO($dsn);
 
         //check if table exists
-        if (!$pdo->query('SELECT count(*) FROM sqlite_master WHERE type="table" AND name="items"')->fetch()) {
+        if (!$pdo->query('SELECT count(*) FROM sqlite_master WHERE type="table" AND name="items"', PDO::FETCH_NUM)->fetch()[0]) {
             $pdo->exec('
             CREATE TABLE items(
                 id INTEGER NOT NULL PRIMARY KEY,
@@ -116,7 +116,8 @@ try {
                 request_method STRING NOT NULL,
                 request_url STRING NOT NULL,
                 response_status INTEGER NOT NULL,
-                duration FLOAT NOT NULL
+                duration FLOAT NOT NULL,
+                files STRING
             )
         ');
         }
@@ -136,14 +137,24 @@ try {
 
         $id = $pdo->lastInsertId();
         $dir = './data/' . $serverName . '/' . $id;
+        $url = '/data/' . $serverName . '/' . $id;
         mkdir($dir, 0777, true);
+        $files = [];
         if ($_FILES) {
             $counter = 0;
             foreach ($_FILES as $fileInfo) {
                 $counter++;
                 move_uploaded_file($fileInfo['tmp_name'], $dir . '/' . $counter . '-' . $fileInfo['name']);
+                $files[] = [
+                    'originalName' => $fileInfo['name'],
+                    'size' => $fileInfo['size'],
+                    'type' => $fileInfo['type'],
+                    'uri'  => $url . '/' . $counter . '-' . $fileInfo['name']
+                ];
             }
         }
+        $update = $pdo->prepare("UPDATE items SET files = ? WHERE id = ?");
+        $update->execute([json_encode($files), $id]);
         file_put_contents($dir . '/request-headers.json', json_encode($requestHeaders));
         if (is_array($post)) {
             file_put_contents($dir . '/post.json', json_encode($post));
