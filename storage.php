@@ -31,6 +31,9 @@ try {
         $limit = empty($_GET['limit']) ? 100 : (int)$_GET['limit'];
         $offset = empty($_GET['offset']) ? 0 : (int)$_GET['offset'];
         $result = $pdo->query("SELECT * FROM items ORDER BY id LIMIT " . $limit . " OFFSET " . $offset)->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($result as & $row) {
+            $row['files'] = json_decode($row['files']);
+        }
     } elseif ($mode == 'get') {
         if (empty($_GET['id'])) {
             throw new Exception('"id" property is required');
