@@ -87,10 +87,13 @@ try {
         header($header);
     }
     echo $responseBody;
-
+    
     //lets store if success
     if ($curlInfo['http_code'] == 200) {
-        @fastcgi_finish_request();
+        if (function_exists('fastcgi_finish_request')) {
+            @fastcgi_finish_request();
+        }
+        ob_flush();
         try {
             $dsn = 'sqlite:' . realpath('./data/') . '/' . $serverName . '.sqlite';
             $pdo = new PDO($dsn);
