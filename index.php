@@ -100,7 +100,9 @@ try {
                 $pdo->exec('
                     CREATE TABLE items(
                         id INTEGER NOT NULL PRIMARY KEY,
+                        tag STRING,
                         server STRING NOT NULL,
+                        server_url STRING NOT NULL,
                         request_date DATETIME NOT NULL,
                         request_method STRING NOT NULL,
                         request_url STRING NOT NULL,
@@ -112,11 +114,13 @@ try {
             }
 
             $stmt = $pdo->prepare("INSERT INTO 
-                items(server, request_date, request_method, request_url, response_status, duration) 
-                VALUES(?, ?, ?, ?, ?, ?)"
+                items(tag, server, server_url, request_date, request_method, request_url, response_status, duration) 
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?)"
             );
             $stmt->execute([
+                isset($_GET['tag']) ? $_GET['tag'] : null,
                 $serverName,
+                $serverConfig['url'],
                 date('Y-m-d H:i:s', $_SERVER["REQUEST_TIME"]),
                 $_SERVER['REQUEST_METHOD'],
                 $requestURI,
@@ -133,14 +137,38 @@ try {
                 $counter = 0;
                 foreach ($_FILES as $fileInfo) {
                     $counter++;
-                    $clean_name = preg_replace('/[^-_a-z0-9\.]/i', '', $fileInfo['name']);
-                    move_uploaded_file($fileInfo['tmp_name'], $dir . '/' . $counter . '-' . $clean_name);
-                    $files[] = [
+
+
+
+                    $cleanName = preg_replace('/[^-_a-z0-9\.]/i', '', $fileInfo['name']);
+                    $dstFile = $dir . '/' . $counter . '-' . $cleanName;
+                    move_uploaded_file($fileInfo['tmp_name'], $dstFile);
+
+                    $file = [
                         'originalName' => $fileInfo['name'],
                         'size' => $fileInfo['size'],
                         'type' => $fileInfo['type'],
-                        'uri' => $url . '/' . $counter . '-' . $clean_name
+                        'uri' => $url . '/' . $counter . '-' . $cleanName
                     ];
+
+
+
+                    //let`s try to resize
+                    require_once 'includes/Image.php';
+                    $thumbName = preg_replace('/\.(.+)$/', '.thumb.$1', $cleanName);
+                    $thumbFile = $dir . '/' . $counter . '-' . $thumbName;
+                    try {
+                        if (Volcano_Tools_Image::resizeImage($dstFile, $thumbFile, 200, 200)) {
+                            list($thumbWidth, $thumbHeight) = getimagesize($thumbFile);
+                            $file['thumbUri'] = $url . '/' . $counter . '-' . $thumbName;
+                            $file['thumbWidth'] = $thumbWidth;
+                            $file['thumbHeight'] = $thumbHeight;
+                        }
+                    } catch (Exception $e) {
+                        //silently ignore
+                    }
+
+                    $files[] = $file;
                 }
             }
             $update = $pdo->prepare("UPDATE items SET files = ? WHERE id = ?");
