@@ -76,7 +76,7 @@ try {
 
     }
     header('Content-type: application/json');
-    print json_encode($result);
+    print json_encode($result, JSON_PRETTY_PRINT);
 
 } catch (NotFoundException $e) {
     header('HTTP/1.1 403 Internal Server Error');
