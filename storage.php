@@ -45,6 +45,7 @@ try {
             $result = $pdo->query($query)->fetchAll(PDO::FETCH_ASSOC);
             foreach ($result as & $row) {
                 $row['files'] = json_decode($row['files']);
+		unset($row['server_url']);
             }
             break;
         case 'get':
@@ -65,6 +66,7 @@ try {
             $result['responseHeaders'] = $url . '/response-headers.json';
             $result['body'] = file_get_contents($dir . '/response-body.raw');
             $result['files'] = json_decode($result['files']);
+	    unset($result['server_url']);
             break;
         case 'tags':
             $result = $pdo->query("SELECT  tag, count(*) as 'count' FROM items GROUP BY tag ")->fetchAll(PDO::FETCH_ASSOC);
