@@ -86,6 +86,7 @@ try {
     foreach ($responseHeaders as $header) {
         header($header);
     }
+    header('X-Restapi: yes');
     echo $responseBody;
     
     //lets store if success
