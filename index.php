@@ -6,6 +6,16 @@
  * Time: 11:13
  */
 
+ob_start();
+header('Access-Control-Allow-Origin: *');
+header("Access-Control-Allow-Credentials: true");
+header('Access-Control-Allow-Methods: GET, PUT, POST, OPTIONS');
+header('Access-Control-Max-Age: 1000');
+header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS')  {
+  exit;
+}
+
 $save = FALSE;
 try {
   set_time_limit(170);
