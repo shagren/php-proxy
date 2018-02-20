@@ -7,18 +7,27 @@
  */
 
 ob_start();
-header('Access-Control-Allow-Origin: *');
-header("Access-Control-Allow-Credentials: true");
-header('Access-Control-Allow-Methods: GET, PUT, POST, OPTIONS');
-header('Access-Control-Max-Age: 1000');
-header('Access-Control-Allow-Headers: Origin, Content-Type, X-Auth-Token , Authorization');
+
+$CORS = [
+  'Access-Control-Allow-Origin' => '*',
+  'Access-Control-Allow-Credentials' => 'true',
+  'Access-Control-Allow-Methods' => 'GET, PUT, POST, OPTIONS',
+  'Access-Control-Max-Age' => '1000',
+  'Access-Control-Allow-Headers' => 'Origin, Content-Type, X-Auth-Token , Authorization',
+];
+
+
+
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS')  {
+  foreach ($CORS as $header => $value) {
+    header($header . ': ' . $value);
+  }
   exit;
 }
 
 $save = FALSE;
 try {
-  set_time_limit(170);
+  set_time_limit(600);
   //get server from uri and reassemble new request uri
   $requestURI = $_SERVER['REQUEST_URI'];
   $parts = explode('/', $requestURI);
@@ -96,9 +105,18 @@ try {
 
   $responseHeaders = preg_split('/$\R?^/m', $responseHeaders);
   array_pop($responseHeaders);
-  header_remove();
+  header_remove();//not necessary
+  $CORSRequired = true;
   foreach ($responseHeaders as $header) {
     header($header);
+    if (preg_match('/^Access-Control/i', $header)) {
+      $CORSRequired = false;
+    }
+  }
+  if ($CORSRequired) {
+    foreach ($CORS as $header => $value) {
+      header($header . ': ' . $value);
+    }
   }
   header('X-Restapi: yes');
   echo $responseBody;

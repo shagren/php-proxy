@@ -8,5 +8,3 @@ RewriteRule ^(.+)$ index.php?url=$1 [QSA,PT]
 
 AddCharset UTF-8 .json
 
-Header set Access-Control-Allow-Origin "*"
-Header setifempty Access-Control-Max-Age "86400"
